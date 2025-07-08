@@ -1,0 +1,56 @@
+[
+  {
+    "id": "pelor",
+    "nome": "Pelor",
+    "titulo": "Deus da Luz e Justiça",
+    "descricao": "O mais adorado em Valkyrie. Representa o sol, a ordem e a proteção. Seus paladinos e clérigos usam armaduras douradas e orações sagradas. Muito respeitado até fora de Valkyrie. Chamado de “o braço forte da luz”."
+  },
+  {
+    "id": "lupia",
+    "nome": "Lupia",
+    "titulo": "Senhora das Profundezas",
+    "descricao": "Adorada na Baía das Sireniades. Deusa do mar, da perda e do rancor. Seus devotos a temem tanto quanto a veneram. Dizem que ela arrasta esperanças ao fundo das águas. Alguns sacerdotes são ex-náufragos ou pessoas que perderam tudo."
+  },
+  {
+    "id": "ektia",
+    "nome": "Ektia",
+    "titulo": "Deusa da Neutralidade e do Equilíbrio",
+    "descricao": "Seguidos por monges e sábios. Não tem templos, mas sim monastérios silenciosos. Quem a segue busca apagar emoções, alcançar a paz total. Reverenciada, mas com distanciamento por muitos reinos."
+  },
+  {
+    "id": "aime",
+    "nome": "Aime",
+    "titulo": "Deusa do Amor",
+    "descricao": "Deusa do amor em todas as suas formas. Alguns elfos e bardos afirmam sua existência; outros a tratam como lenda. Amada pelos livres de coração, evitada pelos céticos."
+  },
+  {
+    "id": "sulo",
+    "nome": "Sulo",
+    "titulo": "Protetor das Crianças",
+    "descricao": "Celebrado com o Festival das 5 Risadas Sagradas, cheio de doces e danças. Não possui devotos adultos, mas é lembrado em cantigas e pedidos infantis. Dizem que ele protege os pequenos em seus sonhos."
+  },
+  {
+    "id": "other",
+    "nome": "Other",
+    "titulo": "Aquela Que Atravessa o Caos",
+    "descricao": "Divindade misteriosa e não muito bem-vista. Seus fiéis são errantes e causam desconforto onde passam. Acreditam que o caos é parte da vida — e que Other se manifesta nele. Rejeitada pelos grandes templos. Cultuada em segredo."
+  },
+  {
+    "id": "eleny",
+    "nome": "Eleny",
+    "titulo": "Deusa dos Devotos",
+    "descricao": "Protetora dos que acreditam com fé verdadeira, independente da divindade. Conhecida como a “guardiã da promessa”. Tem capelas em quase todos os reinos, sempre ao lado de outros altares. Venerada por clérigos, cavaleiros e fiéis que buscam conselhos espirituais."
+  },
+  {
+    "id": "lor’vayn",
+    "nome": "Lor’Vayn",
+    "titulo": "Senhor da Vida, Tecelão do Tempo",
+    "descricao": "Deus do início, da vida e do tempo que corre. Cultuado de forma sutil: mencionado em nascimentos, inícios de jornadas. Associado aos momentos de “primeiro passo”. Irmão de Neryssa."
+  },
+  {
+    "id": "neryssa",
+    "nome": "Neryssa",
+    "titulo": "Senhora da Morte, Guardiã das Estrelas",
+    "descricao": "Deusa do fim, da memória e do descanso. Invocada em funerais e sob o céu estrelado. Considerada uma presença serena, e não uma ameaça. Cuida das almas como quem guarda um relicário."
+  }
+]
