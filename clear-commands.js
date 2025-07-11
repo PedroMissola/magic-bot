@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Adicione o ID do seu servidor aqui.
-const GUILD_ID_TO_CLEAR = '1230675261419159562'; 
+const GUILD_ID_TO_CLEAR = '1376216793672060958'; 
 
 const { DISCORD_TOKEN, CLIENT_ID } = process.env;
 

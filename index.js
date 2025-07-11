@@ -98,12 +98,12 @@ client.once('ready', async () => {
   try {
     const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
     console.log(`🚀 Iniciando o registro de ${commandsToRegister.length} comandos de aplicação globalmente.`);
-    
+
     await rest.put(
       Routes.applicationCommands(CLIENT_ID),
       { body: commandsToRegister }
     );
-    
+
     console.log('✅ Comandos registrados com sucesso globalmente!');
   } catch (error) {
     console.error('❌ Erro ao registrar comandos globalmente:', error);
@@ -178,6 +178,69 @@ client.on('guildCreate', async (guild) => {
 
   } catch (error) {
     console.error(`❌ Erro ao entrar na guilda ${guild.name}:`, error);
+  }
+});
+
+client.on('messageCreate', async (message) => {
+  // Ignora mensagens de bots para evitar loops
+  if (message.author.bot) return;
+
+  // Verifica se o bot foi mencionado na mensagem
+  if (message.mentions.has(client.user.id)) {
+    const embed = new EmbedBuilder()
+      .setTitle(`Olá, sou o ${client.user.username}!`)
+      .setDescription(
+        'Fui criado para ajudar nas suas mesas de D&D 5e! Eu respondo a comandos de barra (`/`).'
+      )
+      .setColor(0x0099ff)
+      .addFields(
+        {
+          name: '🚀 Como começar?',
+          value: 'Basta digitar `/` em qualquer chat para ver a lista completa dos meus comandos. Tente um destes:',
+        },
+        {
+          name: '` /player status`',
+          value: 'Para conferir o estado do seu personagem (status, vida, etc.).',
+          inline: true
+        },
+        {
+          name: '` /help `',
+          value: 'Para saber sobre tipos de comandos que tenho disponível.',
+          inline: true
+        },
+        {
+          name: '🎲 Rolagem por Texto',
+          value: `Além dos comandos, você pode rolar dados diretamente no chat.
+          
+**Sintaxe Básica:**
+\`1d20+5\` ou \`3d6+2\`
+
+**Vantagem/Desvantagem:**
+Adicione \`vantagem\` ou \`desvantagem\` para rolar 1d20 com a regra.
+\`1d20+3 vantagem\`
+
+**Iniciativa:**
+Use o comando especial para rolar a iniciativa e criar uma ordem de turnos.
+\`iniciativa(modificador)\`
+`,
+          inline: false
+        }
+      )
+      .setFooter({ text: 'Estou pronto para a aventura!' });
+
+    // Envia o embed de resposta
+    try {
+      await message.reply({ embeds: [embed] });
+    } catch (error) {
+      console.error('Erro ao enviar embed de menção:', error);
+    }
+  }
+
+  // Executa o handler de rolagens de dado
+  try {
+    await handleRollMessage(message);
+  } catch (error) {
+    console.error('Erro no evento messageCreate:', error);
   }
 });
 
