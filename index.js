@@ -1,72 +1,184 @@
-// index.js
-import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, REST, Routes, Collection, EmbedBuilder } from 'discord.js';
 import dotenv from 'dotenv';
-import magiaCommand from './commands/magia.js';
-import * as deusCommand from './commands/deus.js';
-import * as magiasCommand from './commands/magias.js';
-import * as monstrosCommand from './commands/monstros.js';
-import * as monstroCommand from './commands/monstro.js';
-import * as condicaoCommand from './commands/condicao.js';
-import * as danoCommand from './commands/dano.js';
-import handleSelectMenu from './interactions/handleSelectMenu.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+// Certifique-se de que este caminho está correto para o seu arquivo firebase.js
+import { db } from './firebase.js';
+
+// Handler para rolagens de dado em mensagens de texto
 import handleRollMessage from './messages/handleRollMessage.js';
+
 dotenv.config();
 
 const { DISCORD_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
 
-client.once('ready', () => {
-  console.log('Bot online!');
-});
+client.commands = new Collection();
+const commandsToRegister = [];
 
-client.on('interactionCreate', async (interaction) => {
-  if (interaction.isChatInputCommand()) {
-    if (interaction.commandName === 'magia') {
-      await magiaCommand.execute(interaction);
-    } else if (interaction.commandName === 'monstros') {
-      await monstrosCommand.execute(interaction);
-    } else if (interaction.commandName === 'monstro') {
-      await monstroCommand.execute(interaction);
-    } else if (interaction.commandName === 'magias') {
-      await magiasCommand.execute(interaction);
-    } else if (interaction.commandName === 'condicao') {
-      await condicaoCommand.execute(interaction);
-    } else if (interaction.commandName === 'dano') {
-      await danoCommand.execute(interaction);
-    } else if (interaction.commandName === 'deus') {
-      await deusCommand.execute(interaction);
+// Carregar dinamicamente os arquivos de comando
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const commandsPath = path.join(__dirname, 'commands');
+
+try {
+  const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = await import(`file://${filePath}`);
+
+    if ('data' in command && 'execute' in command) {
+      client.commands.set(command.data.name, command);
+
+      // Adiciona o comando para registro, verificando se tem o método toJSON()
+      if (typeof command.data.toJSON === 'function') {
+        commandsToRegister.push(command.data.toJSON());
+      } else {
+        commandsToRegister.push(command.data);
+      }
+
+    } else {
+      console.warn(`[AVISO] O comando em ${filePath} não possui as propriedades "data" ou "execute" necessárias.`);
     }
-  } else if (interaction.isStringSelectMenu()) {
-    await handleSelectMenu(interaction);
   }
-});
+} catch (error) {
+  console.error(`❌ Erro ao carregar comandos. Verifique se a pasta "commands" existe e está acessível:`, error);
+  // Opcional: Terminar o processo do bot se os comandos não puderem ser carregados
+  // process.exit(1); 
+}
 
-client.on('messageCreate', async (message) => {
-  await handleRollMessage(message);
-});
+// Lógica de inicialização do bot e registro de comandos
+client.once('ready', async () => {
+  console.log(`✅ Bot online como ${client.user.tag}!`);
 
-const commands = [
-  magiaCommand.data,
-  magiasCommand.data,
-  monstrosCommand.data,
-  monstroCommand.data,
-  condicaoCommand.data,
-  danoCommand.data,
-  deusCommand.data, 
-];
-
-const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
-
-(async () => {
+  const commandsPath = path.join(__dirname, 'commands');
+  let totalCommands = 0;
   try {
-    console.log('Registrando comandos...');
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-    console.log('Comandos registrados com sucesso!');
-    await client.login(DISCORD_TOKEN);
-  } catch (err) {
-    console.error('Erro ao registrar comandos:', err);
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    totalCommands = commandFiles.length;
+  } catch (error) {
+    console.error('Erro ao contar comandos para o status:', error);
   }
-})();
+
+  // Busca o número de jogadores no Firebase
+  let totalPlayers = 0;
+  try {
+    const playersSnapshot = await db.collection('players').count().get();
+    totalPlayers = playersSnapshot.data().count;
+  } catch (err) {
+    console.error('Erro ao buscar o número de jogadores:', err);
+  }
+
+  // Define a lista de status dinâmicos
+  const statusList = [
+    { name: '/ajuda para começar!', type: 0 }, // Playing
+    { name: `Gerenciando ${totalPlayers} aventureiros`, type: 0 }, // Playing
+    { name: `Com ${totalCommands} comandos disponíveis`, type: 0 }, // Playing
+    { name: 'Rolando dados para o destino', type: 3 }, // Watching
+    { name: 'Ouvindo histórias de heróis', type: 2 }, // Listening
+  ];
+
+  let statusIndex = 0;
+  setInterval(() => {
+    const status = statusList[statusIndex];
+    client.user.setActivity(status.name, { type: status.type });
+    statusIndex = (statusIndex + 1) % statusList.length;
+  }, 15000); // O status muda a cada 15 segundos
+
+  // Lógica de registro de comandos - Registra globalmente
+  try {
+    const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
+    console.log(`🚀 Iniciando o registro de ${commandsToRegister.length} comandos de aplicação globalmente.`);
+    
+    await rest.put(
+      Routes.applicationCommands(CLIENT_ID),
+      { body: commandsToRegister }
+    );
+    
+    console.log('✅ Comandos registrados com sucesso globalmente!');
+  } catch (error) {
+    console.error('❌ Erro ao registrar comandos globalmente:', error);
+  }
+});
+
+// Handler para todas as interações de barra (slash commands)
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isStringSelectMenu()) return;
+
+  const command = client.commands.get(interaction.commandName);
+
+  if (interaction.isChatInputCommand()) {
+    if (!command) {
+      console.error(`Comando não encontrado: ${interaction.commandName}`);
+      return;
+    }
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(`Erro ao executar o comando ${interaction.commandName}:`, error);
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: 'Ocorreu um erro ao executar este comando!', ephemeral: true });
+      } else {
+        await interaction.reply({ content: 'Ocorreu um erro ao executar este comando!', ephemeral: true });
+      }
+    }
+  }
+});
+
+// Handler para rolagens de dado em mensagens de texto
+client.on('messageCreate', async (message) => {
+  try {
+    await handleRollMessage(message);
+  } catch (error) {
+    console.error('Erro no evento messageCreate:', error);
+  }
+});
+
+client.on('guildCreate', async (guild) => {
+  try {
+    // 1. Registra os comandos na nova guilda
+    const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
+
+    console.log(`🚀 Registrando comandos para a nova guilda: ${guild.name} (${guild.id})`);
+
+    await rest.put(
+      Routes.applicationGuildCommands(CLIENT_ID, guild.id),
+      { body: commandsToRegister }
+    );
+
+    console.log(`✅ Comandos registrados com sucesso na guilda ${guild.name}!`);
+
+    // 2. Envia um embed de boas-vindas
+    const welcomeEmbed = new EmbedBuilder()
+      .setTitle(`Obrigado por me adicionar a ${guild.name}!`)
+      .setDescription('Olá, aventureiro! Sou um bot de D&D 5e e estou aqui para ajudar a sua mesa. Você pode usar meus comandos de barra (/) para consultar regras, monstros, magias e muito mais.')
+      .setColor(0x0099ff)
+      .addFields(
+        { name: '✨ Por onde começar?', value: 'Use `/` para ver a lista de comandos disponíveis. Tente começar com `/player set` para registrar seu personagem ou `/monstro dragon` para ver as estatísticas de um dragão!' },
+        { name: '📚 Regras', value: 'Você pode consultar regras como `/dano`, `/condicao` e `/checagem`.' }
+      )
+      .setFooter({ text: 'Divirta-se em suas aventuras!' });
+
+    // Encontra um canal para enviar a mensagem
+    const defaultChannel = guild.systemChannel || guild.channels.cache.find(c => c.type === 0 && c.permissionsFor(guild.members.me).has('SendMessages'));
+
+    if (defaultChannel) {
+      await defaultChannel.send({ embeds: [welcomeEmbed] });
+      console.log(`✅ Mensagem de boas-vindas enviada para a guilda ${guild.name}.`);
+    }
+
+  } catch (error) {
+    console.error(`❌ Erro ao entrar na guilda ${guild.name}:`, error);
+  }
+});
+
+client.login(DISCORD_TOKEN);

@@ -29,21 +29,30 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  await interaction.deferReply({ ephemeral: true }); // deixa a resposta privada
+  await interaction.deferReply({ ephemeral: true });
   const nome = interaction.options.getString('nome');
 
   try {
-    const res = await axios.get(`https://www.dnd5eapi.co/api/conditions/${nome}`);
-    const condicao = res.data;
+    const { data: condicao } = await axios.get(`https://www.dnd5eapi.co/api/conditions/${nome}`);
 
+    if (!condicao || !condicao.name) {
+      return await interaction.editReply('❌ Condição não encontrada. Verifique o nome.');
+    }
+
+    const desc = condicao.desc?.join('\n\n') || 'Sem descrição.';
     const embed = new EmbedBuilder()
-      .setTitle(`⚖️ Condição: ${condicao.name}`)
-      .setDescription(condicao.desc.join('\n\n'))
-      .setColor(0x3498db);
+      .setTitle(`Condição: ${condicao.name}`)
+      .setDescription(desc)
+      .setColor(0xa6026c)
+      .setFooter({ text: 'Fonte: dnd5eapi.co' });
 
     await interaction.editReply({ embeds: [embed] });
+
   } catch (err) {
+    if (err.response && err.response.status === 404) {
+      return await interaction.editReply('❌ Condição não encontrada. Verifique o nome.');
+    }
     console.error('Erro ao buscar condição:', err);
-    await interaction.editReply({ content: '❌ Condição não encontrada. Verifique o nome.' });
+    await interaction.editReply('❌ Ocorreu um erro ao buscar a condição.');
   }
 }

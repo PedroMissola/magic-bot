@@ -27,21 +27,30 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  await interaction.deferReply({ ephemeral: true }); // resposta privada
+  await interaction.deferReply({ ephemeral: true });
   const tipo = interaction.options.getString('tipo');
 
   try {
-    const res = await axios.get(`https://www.dnd5eapi.co/api/damage-types/${tipo}`);
-    const dano = res.data;
+    const { data: dano } = await axios.get(`https://www.dnd5eapi.co/api/damage-types/${tipo}`);
 
+    if (!dano || !dano.name) {
+      return await interaction.editReply('❌ Tipo de dano não encontrado. Verifique o nome.');
+    }
+
+    const desc = dano.desc?.join('\n\n') || 'Sem descrição.';
     const embed = new EmbedBuilder()
       .setTitle(`💥 Tipo de Dano: ${dano.name}`)
-      .setDescription(dano.desc.join('\n\n'))
-      .setColor(0xe67e22);
+      .setDescription(desc)
+      .setColor(0xfc3903)
+      .setFooter({ text: 'Fonte: dnd5eapi.co' });
 
     await interaction.editReply({ embeds: [embed] });
+
   } catch (err) {
+    if (err.response && err.response.status === 404) {
+      return await interaction.editReply('❌ Tipo de dano não encontrado. Verifique o nome.');
+    }
     console.error('Erro ao buscar tipo de dano:', err);
-    await interaction.editReply({ content: '❌ Tipo de dano não encontrado. Verifique o nome.' });
+    await interaction.editReply('❌ Ocorreu um erro ao buscar o tipo de dano.');
   }
 }
